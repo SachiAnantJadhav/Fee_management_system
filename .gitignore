@@ -1,0 +1,46 @@
+# Python
+.venv/
+**/__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Test and tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Frontend local files
+frontend
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+frontend/.streamlit/secrets.toml
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+local.settings.json
+!local.settings.json.example
+
+# Azure Functions local state
+backend/local.settings.json
+backend/__azurite_*.json
+backend/__blobstorage__/
+backend/__queuestorage__/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs and local databases
+*.log
+*.sqlite
+*.sqlite3
