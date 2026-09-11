@@ -18,31 +18,10 @@ The system gives students a secure view of their fee records and gives administr
 
 ## Architecture
 
-```text
-Student / Administrator
-					|
-					v
-	 Streamlit frontend
-					|
-					v
- Microsoft Entra ID  ---- JWT access token and app role
-					|
-					v
- Azure API Management
-	 | JWT validation
-	 | Role authorization
-	 | Rate limiting
-	 | Retry policy
-					|
-					v
- Azure Functions API
-					|
-					v
-		Azure SQL Database
 
- Azure Logic App --> overdue-fee query --> reminder email
- Azure Functions --> Application Insights telemetry
-```
+<img width="2787" height="1641" alt="Blank diagram (1)" src="https://github.com/user-attachments/assets/eba05bc5-70a3-4e4b-86ef-5326900535d7" />
+
+
 
 ## Repository Layout
 
@@ -301,8 +280,11 @@ Use separate required-role checks for read and update operations. Both roles may
 ## Automated Reminder Workflow
 
 The automated reminder workflow is deployed as **`fee-reminder-logic-app`**. It uses Azure Logic Apps with the **SendGrid** connector to send overdue-fee reminder emails.
-<img width="1080" height="1196" alt="WhatsApp Image 2026-09-11 at 1 12 55 PM" src="https://github.com/user-attachments/assets/48171b61-0749-420b-9df5-f61f77f30586" />
+
 The Logic App should use this sequence:
+
+<img width="270" height="500" alt="WhatsApp Image 2026-09-11 at 1 14 24 PM" src="https://github.com/user-attachments/assets/a3fd5e07-b76c-4f04-9c70-6c6b48a4fa71" />
+
 
 ```text
 Recurrence
@@ -311,7 +293,12 @@ Recurrence
 	-> Send an email reminder through SendGrid
 ```
 
-The overdue query should select unpaid records whose `DueDate` is earlier than the current date. Configure SendGrid with the verified sender address and map each student's `Email` field to the recipient address.<img width="346" height="628" alt="WhatsApp Image 2026-09-11 at 1 14 24 PM" src="https://github.com/user-attachments/assets/a3fd5e07-b76c-4f04-9c70-6c6b48a4fa71" />
+The overdue query should select unpaid records whose `DueDate` is earlier than the current date. Configure SendGrid with the verified sender address and map each student's `Email` field to the recipient address.
+
+
+
+
+<img width="270" height="360" alt="WhatsApp Image 2026-09-11 at 1 12 55 PM" src="https://github.com/user-attachments/assets/48171b61-0749-420b-9df5-f61f77f30586" />
 
 
 
