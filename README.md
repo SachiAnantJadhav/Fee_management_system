@@ -301,7 +301,7 @@ Use separate required-role checks for read and update operations. Both roles may
 ## Automated Reminder Workflow
 
 The automated reminder workflow is deployed as **`fee-reminder-logic-app`**. It uses Azure Logic Apps with the **SendGrid** connector to send overdue-fee reminder emails.
-
+<img width="1080" height="1196" alt="WhatsApp Image 2026-09-11 at 1 12 55 PM" src="https://github.com/user-attachments/assets/48171b61-0749-420b-9df5-f61f77f30586" />
 The Logic App should use this sequence:
 
 ```text
@@ -311,7 +311,9 @@ Recurrence
 	-> Send an email reminder through SendGrid
 ```
 
-The overdue query should select unpaid records whose `DueDate` is earlier than the current date. Configure SendGrid with the verified sender address and map each student's `Email` field to the recipient address.
+The overdue query should select unpaid records whose `DueDate` is earlier than the current date. Configure SendGrid with the verified sender address and map each student's `Email` field to the recipient address.<img width="346" height="628" alt="WhatsApp Image 2026-09-11 at 1 14 24 PM" src="https://github.com/user-attachments/assets/a3fd5e07-b76c-4f04-9c70-6c6b48a4fa71" />
+
+
 
 ## Testing Checklist
 
