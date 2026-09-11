@@ -187,7 +187,7 @@ The access token should contain the appropriate `roles` claim. APIM should valid
 
 ```powershell
 python -m venv .venv
-.\.venv\Scripts\Activate.ps1
+.venv\Scripts\Activate
 ```
 
 ### 2. Install frontend dependencies
