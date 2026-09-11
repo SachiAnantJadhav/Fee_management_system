@@ -78,16 +78,16 @@ Student / Administrator
 
 ## Technology Stack
 
-| Layer | Technology | Responsibility |
-| --- | --- | --- |
-| Frontend | Streamlit | Student and administrator UI |
-| API | Azure Functions with Python | Fee retrieval, updates, and business logic |
-| Database | Azure SQL Database | Relational fee and user data |
-| API gateway | Azure API Management | Routing, JWT validation, throttling, and retries |
-| Identity | Microsoft Entra ID | Authentication and app roles |
-| Automation | Azure Logic Apps | Overdue-fee reminder workflow |
-| Monitoring | Azure Application Insights | Requests, failures, logs, and response times |
-| Testing | Pytest / Postman | Automated and API-level verification |
+| Layer       | Technology                  | Responsibility                                   |
+| ----------- | --------------------------- | ------------------------------------------------ |
+| Frontend    | Streamlit                   | Student and administrator UI                     |
+| API         | Azure Functions with Python | Fee retrieval, updates, and business logic       |
+| Database    | Azure SQL Database          | Relational fee and user data                     |
+| API gateway | Azure API Management        | Routing, JWT validation, throttling, and retries |
+| Identity    | Microsoft Entra ID          | Authentication and app roles                     |
+| Automation  | Azure Logic Apps            | Overdue-fee reminder workflow                    |
+| Monitoring  | Azure Application Insights  | Requests, failures, logs, and response times     |
+| Testing     | Pytest / Postman            | Automated and API-level verification             |
 
 ## Data Model
 
@@ -95,25 +95,25 @@ The database schema is in [`database/schema.sql`](database/schema.sql).
 
 ### `Students`
 
-| Column | Description |
-| --- | --- |
-| `StudentID` | Primary key and student identifier |
-| `Name` | Student name |
-| `Email` | Reminder email address |
-| `Course` | Academic course |
-| `TotalFee` | Total amount payable |
-| `PaidAmount` | Amount paid so far |
-| `DueDate` | Payment due date |
+| Column       | Description                        |
+| ------------ | ---------------------------------- |
+| `StudentID`  | Primary key and student identifier |
+| `Name`       | Student name                       |
+| `Email`      | Reminder email address             |
+| `Course`     | Academic course                    |
+| `TotalFee`   | Total amount payable               |
+| `PaidAmount` | Amount paid so far                 |
+| `DueDate`    | Payment due date                   |
 
 The schema enforces non-negative fees and prevents `PaidAmount` from exceeding `TotalFee`.
 
 ### `Administrators`
 
-| Column | Description |
-| --- | --- |
-| `AdminID` | Primary key |
-| `Name` | Administrator name |
-| `Role` | Administrator role |
+| Column    | Description        |
+| --------- | ------------------ |
+| `AdminID` | Primary key        |
+| `Name`    | Administrator name |
+| `Role`    | Administrator role |
 
 ## Payment Status
 
@@ -147,15 +147,15 @@ Example response:
 
 ```json
 {
-	"student_id": "STU005",
-	"name": "Kabir Verma",
-	"email": "kabir@example.com",
-	"course": "B.Tech CSE",
-	"total_fee": 120000.0,
-	"paid_amount": 100005.0,
-	"outstanding_amount": 19995.0,
-	"due_date": "2026-09-20",
-	"payment_status": "Partially Paid"
+  "student_id": "STU005",
+  "name": "Kabir Verma",
+  "email": "kabir@example.com",
+  "course": "B.Tech CSE",
+  "total_fee": 120000.0,
+  "paid_amount": 100005.0,
+  "outstanding_amount": 19995.0,
+  "due_date": "2026-09-20",
+  "payment_status": "Partially Paid"
 }
 ```
 
@@ -170,7 +170,7 @@ Request body:
 
 ```json
 {
-	"paid_amount": 100005
+  "paid_amount": 100005
 }
 ```
 
@@ -191,12 +191,12 @@ Set `APIM_BASE_URL` to the deployed APIM URL. The default value in the client is
 
 Configure these Microsoft Entra ID app roles:
 
-| Operation | Administrator | Student |
-| --- | --- | --- |
-| Retrieve fee details | Yes | Yes |
-| View payment status | Yes | Yes |
-| Update fee record | Yes | No |
-| Administrative operations | Yes | No |
+| Operation                 | Administrator | Student |
+| ------------------------- | ------------- | ------- |
+| Retrieve fee details      | Yes           | Yes     |
+| View payment status       | Yes           | Yes     |
+| Update fee record         | Yes           | No      |
+| Administrative operations | Yes           | No      |
 
 The access token should contain the appropriate `roles` claim. APIM should validate the token issuer, signature, audience, and required role before forwarding protected requests to the Function App.
 
@@ -300,31 +300,33 @@ Use separate required-role checks for read and update operations. Both roles may
 
 ## Automated Reminder Workflow
 
+The automated reminder workflow is deployed as **`fee-reminder-logic-app`**. It uses Azure Logic Apps with the **SendGrid** connector to send overdue-fee reminder emails.
+
 The Logic App should use this sequence:
 
 ```text
 Recurrence
 	-> Execute SQL query for overdue students
 	-> For each returned student
-	-> Send an email reminder to the student's Email address
+	-> Send an email reminder through SendGrid
 ```
 
-The overdue query should select unpaid records whose `DueDate` is earlier than the current date. Configure the Outlook or Office 365 connector with the appropriate sender and recipient fields.
+The overdue query should select unpaid records whose `DueDate` is earlier than the current date. Configure SendGrid with the verified sender address and map each student's `Email` field to the recipient address.
 
 ## Testing Checklist
 
-| Scenario | Expected result |
-| --- | --- |
-| Administrator GET | `200 OK` |
-| Student GET | `200 OK` |
-| Administrator PUT | `200 OK` and database value updated |
-| Student PUT | `403 Forbidden` at APIM |
-| Missing or invalid token | `401 Unauthorized` |
-| Unknown student | `404 Not Found` |
-| Invalid payment amount | `400 Bad Request` |
-| More than five requests in 60 seconds | `429 Too Many Requests` |
-| Logic App run | Reminder email sent to each overdue student |
-| Application Insights | Requests and failures visible |
+| Scenario                              | Expected result                             |
+| ------------------------------------- | ------------------------------------------- |
+| Administrator GET                     | `200 OK`                                    |
+| Student GET                           | `200 OK`                                    |
+| Administrator PUT                     | `200 OK` and database value updated         |
+| Student PUT                           | `403 Forbidden` at APIM                     |
+| Missing or invalid token              | `401 Unauthorized`                          |
+| Unknown student                       | `404 Not Found`                             |
+| Invalid payment amount                | `400 Bad Request`                           |
+| More than five requests in 60 seconds | `429 Too Many Requests`                     |
+| Logic App run                         | Reminder email sent to each overdue student |
+| Application Insights                  | Requests and failures visible               |
 
 Run the Python tests from the repository root with:
 
