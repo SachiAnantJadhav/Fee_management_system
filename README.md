@@ -43,7 +43,7 @@ The system gives students a secure view of their fee records and gives administr
 │   ├── seed.sql                  # Sample data
 │   └── queries.sql
 ├── frontend/
-│   ├── app.py                    # Streamlit entry point
+│   ├── app.py                    # Streamlit entry point-(Not Committed)
 │   ├── pages/
 │   ├── services/
 │   └── utils/
@@ -59,7 +59,7 @@ The system gives students a secure view of their fee records and gives administr
 
 | Layer       | Technology                  | Responsibility                                   |
 | ----------- | --------------------------- | ------------------------------------------------ |
-| Frontend    | Streamlit                   | Student and administrator UI                     |
+| Frontend*   | Streamlit                   | Student and administrator UI                     |
 | API         | Azure Functions with Python | Fee retrieval, updates, and business logic       |
 | Database    | Azure SQL Database          | Relational fee and user data                     |
 | API gateway | Azure API Management        | Routing, JWT validation, throttling, and retries |
@@ -67,6 +67,8 @@ The system gives students a secure view of their fee records and gives administr
 | Automation  | Azure Logic Apps            | Overdue-fee reminder workflow                    |
 | Monitoring  | Azure Application Insights  | Requests, failures, logs, and response times     |
 | Testing     | Pytest / Postman            | Automated and API-level verification             |
+
+*Frontend is not committed in the current repository.
 
 ## Data Model
 
@@ -183,14 +185,21 @@ The access token should contain the appropriate `roles` claim. APIM should valid
 
 ## Local Setup
 
-### 1. Create a virtual environment
+### 1. Clone the repository
+
+```powershell
+git clone https://github.com/SachiAnantJadhav/Fee_management_system.git
+cd Fee_management_system
+```
+
+### 2. Create a virtual environment
 
 ```powershell
 python -m venv .venv
 .venv\Scripts\Activate
 ```
 
-### 2. Install frontend dependencies
+### 3. Install frontend dependencies
 
 ```powershell
 pip install -r requirements.txt
@@ -202,7 +211,7 @@ Install backend dependencies separately when running Azure Functions locally:
 pip install -r backend/requirements.txt
 ```
 
-### 3. Configure environment variables
+### 4. Configure environment variables
 
 For the backend, set `SQL_CONNECTION_STRING` to an Azure SQL connection string. For the frontend, set `APIM_BASE_URL` to the APIM instance used by the deployment.
 
@@ -215,7 +224,7 @@ $env:APIM_BASE_URL = "https://<apim-host>"
 
 Keep credentials, client secrets, connection strings, and access tokens out of source control. Use Function App settings or Azure Key Vault for deployed environments.
 
-### 4. Initialize the database
+### 5. Initialize the database
 
 Run the scripts in order using Azure SQL Query Editor, SQL Server Management Studio, or another SQL client:
 
@@ -230,7 +239,7 @@ Verify the sample data:
 SELECT COUNT(*) FROM Students;
 ```
 
-### 5. Run the Streamlit frontend
+### 6. Run the Streamlit frontend
 
 ```powershell
 streamlit run frontend/app.py
@@ -238,7 +247,7 @@ streamlit run frontend/app.py
 
 The frontend redirects requests through APIM and sends the bearer token in the `Authorization` header.
 
-### 6. Run the Functions backend locally
+### 7. Run the Functions backend locally
 
 From the `backend` directory, with Azure Functions Core Tools installed:
 
