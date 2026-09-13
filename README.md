@@ -18,10 +18,7 @@ The system gives students a secure view of their fee records and gives administr
 
 ## Architecture
 
-
 <img width="2787" height="1641" alt="Blank diagram (1)" src="https://github.com/user-attachments/assets/eba05bc5-70a3-4e4b-86ef-5326900535d7" />
-
-
 
 ## Repository Layout
 
@@ -43,7 +40,7 @@ The system gives students a secure view of their fee records and gives administr
 │   ├── seed.sql                  # Sample data
 │   └── queries.sql
 ├── frontend/
-│   ├── app.py                    # Streamlit entry point-(Not Committed)
+│   ├── app.py                    # Streamlit entry point
 │   ├── pages/
 │   ├── services/
 │   └── utils/
@@ -59,7 +56,7 @@ The system gives students a secure view of their fee records and gives administr
 
 | Layer       | Technology                  | Responsibility                                   |
 | ----------- | --------------------------- | ------------------------------------------------ |
-| Frontend*   | Streamlit                   | Student and administrator UI                     |
+| Frontend\*  | Streamlit                   | Student and administrator UI                     |
 | API         | Azure Functions with Python | Fee retrieval, updates, and business logic       |
 | Database    | Azure SQL Database          | Relational fee and user data                     |
 | API gateway | Azure API Management        | Routing, JWT validation, throttling, and retries |
@@ -68,7 +65,16 @@ The system gives students a secure view of their fee records and gives administr
 | Monitoring  | Azure Application Insights  | Requests, failures, logs, and response times     |
 | Testing     | Pytest / Postman            | Automated and API-level verification             |
 
-*Frontend is not committed in the current repository.
+The frontend is included in the current repository and is organized as follows:
+
+- `frontend/app.py` is the Streamlit entry point and routes users to the appropriate dashboard.
+- `frontend/pages/student_dashboard.py` lets students retrieve their own fee details using the `student_id` claim from the access token.
+- `frontend/pages/admin_dashboard.py` lets administrators retrieve a student's fee details, list students with pending dues, and update a student's paid amount.
+- `frontend/services/auth.py` handles Microsoft Entra ID authorization-code login through MSAL.
+- `frontend/services/api_client.py` sends bearer tokens and the APIM subscription key to the API gateway.
+- `frontend/utils/session.py` reads token claims and resolves the user's `Administrator` or `Student` role.
+
+The frontend enforces the dashboard experience based on the roles in the token. API authorization must still be enforced at APIM as described in the [Authorization Model](#authorization-model).
 
 ## Data Model
 
@@ -157,6 +163,36 @@ Request body:
 
 The update endpoint validates the JSON body, rejects negative values, rejects payments greater than the total fee, and returns `404` when the student does not exist.
 
+### Get Students With Pending Dues
+
+```http
+GET /api/pending
+```
+
+The pending endpoint is intended for administrator use. It returns students whose fee records still have an outstanding balance, allowing the administrator dashboard to display a pending-dues table.
+
+Example response:
+
+```json
+{
+  "students": [
+    {
+      "student_id": "STU005",
+      "name": "Kabir Verma",
+      "email": "kabir@example.com",
+      "course": "B.Tech CSE",
+      "total_fee": 120000.0,
+      "paid_amount": 100005.0,
+      "outstanding_amount": 19995.0,
+      "due_date": "2026-09-20",
+      "payment_status": "Partially Paid"
+    }
+  ]
+}
+```
+
+The current Streamlit administrator dashboard calls this route at `/pending`. Ensure that the deployed Function App and APIM configuration expose the route before using **Find Pending Dues**. The existing `backend/function_app.py` currently contains the fee-details and fee-update routes; the pending route still needs to be implemented or connected in the backend deployment.
+
 ### APIM URLs
 
 The Streamlit API client uses the APIM base URL and the following gateway paths:
@@ -164,20 +200,22 @@ The Streamlit API client uses the APIM base URL and the following gateway paths:
 ```text
 GET https://<apim-host>/fees/students/{studentId}/fees
 PUT https://<apim-host>/fees/fee-update/{studentId}
+GET https://<apim-host>/fees/pending
 ```
 
-Set `APIM_BASE_URL` to the deployed APIM URL. The default value in the client is `https://feemanagementapim.azure-api.net`.
+Set `API_BASE_URL` to the deployed APIM API base URL, for example `https://<apim-host>/fees`, and set `APIM_SUBSCRIPTION_KEY` to the subscription key required by the gateway.
 
 ## Authorization Model
 
 Configure these Microsoft Entra ID app roles:
 
-| Operation                 | Administrator | Student |
-| ------------------------- | ------------- | ------- |
-| Retrieve fee details      | Yes           | Yes     |
-| View payment status       | Yes           | Yes     |
-| Update fee record         | Yes           | No      |
-| Administrative operations | Yes           | No      |
+| Operation                       | Administrator | Student |
+| ------------------------------- | ------------- | ------- |
+| Retrieve fee details            | Yes           | Yes     |
+| View payment status             | Yes           | Yes     |
+| View students with pending dues | Yes           | No      |
+| Update fee record               | Yes           | No      |
+| Administrative operations       | Yes           | No      |
 
 The access token should contain the appropriate `roles` claim. APIM should validate the token issuer, signature, audience, and required role before forwarding protected requests to the Function App.
 
@@ -213,14 +251,23 @@ pip install -r backend/requirements.txt
 
 ### 4. Configure environment variables
 
-For the backend, set `SQL_CONNECTION_STRING` to an Azure SQL connection string. For the frontend, set `APIM_BASE_URL` to the APIM instance used by the deployment.
+For the backend, set `SQL_CONNECTION_STRING` to an Azure SQL connection string. For the frontend, set the APIM API base URL, subscription key, and Microsoft Entra ID settings used by the Streamlit application.
 
 Example PowerShell configuration for the current session:
 
 ```powershell
 $env:SQL_CONNECTION_STRING = "<azure-sql-connection-string>"
-$env:APIM_BASE_URL = "https://<apim-host>"
+$env:API_BASE_URL = "https://<apim-host>/fees"
+$env:APIM_SUBSCRIPTION_KEY = "<apim-subscription-key>"
+$env:TENANT_ID = "<tenant-id>"
+$env:CLIENT_ID = "<frontend-client-id>"
+$env:CLIENT_SECRET = "<frontend-client-secret>"
+$env:REDIRECT_URI = "http://localhost:8501"
+$env:AUTHORITY = "https://login.microsoftonline.com/<tenant-id>"
+$env:API_SCOPE = "api://<api-application-id>/.default"
 ```
+
+The frontend reads these values from environment variables or a local `.env` file. Keep client secrets, connection strings, subscription keys, and access tokens out of source control. The redirect URI must also be registered for the frontend application in Microsoft Entra ID.
 
 Keep credentials, client secrets, connection strings, and access tokens out of source control. Use Function App settings or Azure Key Vault for deployed environments.
 
@@ -245,7 +292,7 @@ SELECT COUNT(*) FROM Students;
 streamlit run frontend/app.py
 ```
 
-The frontend redirects requests through APIM and sends the bearer token in the `Authorization` header.
+Open the displayed local URL, sign in with Microsoft Entra ID, and use the dashboard associated with the `Administrator` or `Student` app role. The frontend redirects API requests through APIM and sends the bearer token in the `Authorization` header together with the `Ocp-Apim-Subscription-Key` header. Student accounts need a `student_id` claim in the access token to load their own fee record.
 
 ### 7. Run the Functions backend locally
 
@@ -294,7 +341,6 @@ The Logic App should use this sequence:
 
 <img width="270" height="500" alt="WhatsApp Image 2026-09-11 at 1 14 24 PM" src="https://github.com/user-attachments/assets/a3fd5e07-b76c-4f04-9c70-6c6b48a4fa71" />
 
-
 ```text
 Recurrence
 	-> Execute SQL query for overdue students
@@ -304,12 +350,7 @@ Recurrence
 
 The overdue query should select unpaid records whose `DueDate` is earlier than the current date. Configure SendGrid with the verified sender address and map each student's `Email` field to the recipient address.
 
-
-
-
 <img width="270" height="360" alt="WhatsApp Image 2026-09-11 at 1 12 55 PM" src="https://github.com/user-attachments/assets/48171b61-0749-420b-9df5-f61f77f30586" />
-
-
 
 ## Testing Checklist
 
@@ -317,6 +358,7 @@ The overdue query should select unpaid records whose `DueDate` is earlier than t
 | ------------------------------------- | ------------------------------------------- |
 | Administrator GET                     | `200 OK`                                    |
 | Student GET                           | `200 OK`                                    |
+| Administrator pending dues GET        | `200 OK` with matching student records      |
 | Administrator PUT                     | `200 OK` and database value updated         |
 | Student PUT                           | `403 Forbidden` at APIM                     |
 | Missing or invalid token              | `401 Unauthorized`                          |
