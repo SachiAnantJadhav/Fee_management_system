@@ -1,2 +1,9 @@
-streamlit
+# Frontend
+msal
+PyJWT
+python-dotenv
 requests
+streamlit
+
+# Testing
+pytest
