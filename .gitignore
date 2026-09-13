@@ -10,7 +10,6 @@
 .ruff_cache/
 
 # Frontend local files
-frontend
 frontend/.env
 frontend/.env.*
 !frontend/.env.example
